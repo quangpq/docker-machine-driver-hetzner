@@ -2,12 +2,15 @@ package driver
 
 import (
 	"context"
+	"crypto"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/pem"
 	"fmt"
 	"os"
 
 	"github.com/docker/machine/libmachine/log"
 	"github.com/docker/machine/libmachine/mcnutils"
-	mcnssh "github.com/docker/machine/libmachine/ssh"
 	"github.com/hetznercloud/hcloud-go/v2/hcloud"
 	"golang.org/x/crypto/ssh"
 )
@@ -43,6 +46,13 @@ func (d *Driver) setupExistingKey() error {
 	}
 
 	return nil
+}
+
+func (d *Driver) GetSSHKeyPath() string {
+	if d.SSHKeyPath == "" {
+		d.SSHKeyPath = d.ResolveStorePath("id_ed25519")
+	}
+	return d.SSHKeyPath
 }
 
 func (d *Driver) copySSHKeyPair(src string) error {
@@ -120,8 +130,39 @@ func (d *Driver) prepareLocalKey() error {
 		}
 	} else {
 		log.Debugf("Generating SSH key...")
-		if err := mcnssh.GenerateSSHKey(d.GetSSHKeyPath()); err != nil {
-			return fmt.Errorf("could not generate ssh key: %w", err)
+		path := d.GetSSHKeyPath()
+		if _, err := os.Stat(path); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("desired directory for SSH keys does not exist: %s", err)
+			}
+
+			pub, priv, err := ed25519.GenerateKey(rand.Reader)
+			if err != nil {
+				return fmt.Errorf("could not generate ssh key: %w", err)
+			}
+
+			pubKey, err := ssh.NewPublicKey(pub)
+			if err != nil {
+				return fmt.Errorf("could not encode ssh key: %w", err)
+			}
+
+			pubBytes := ssh.MarshalAuthorizedKey(pubKey)
+			privBytes, err := ssh.MarshalPrivateKey(crypto.PrivateKey(priv), "")
+			if err != nil {
+				return fmt.Errorf("could not encode ssh key: %w", err)
+			}
+
+			privPEM := pem.EncodeToMemory(privBytes)
+
+			err = os.WriteFile(path, privPEM, 0600)
+			if err != nil {
+				return fmt.Errorf("error writing private key to file: %s", err)
+			}
+
+			err = os.WriteFile(fmt.Sprintf("%s.pub", path), pubBytes, 0644)
+			if err != nil {
+				return fmt.Errorf("error writing public key to file: %s", err)
+			}
 		}
 	}
 	return nil

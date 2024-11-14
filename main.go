@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/JonasProgrammer/docker-machine-driver-hetzner/driver"
 	"github.com/docker/machine/libmachine/drivers/plugin"
+	"github.com/quangpq/docker-machine-driver-hetzner/driver"
 )
 
 // Version will be added once we start the build process by goreleaser
