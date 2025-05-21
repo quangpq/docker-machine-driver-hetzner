@@ -40,8 +40,6 @@ type Driver struct {
 	Volumes           []string
 	Networks          []string
 	UsePrivateNetwork bool
-	DisablePublic4    bool
-	DisablePublic6    bool
 	PrimaryIPv4       string
 	cachedPrimaryIPv4 *hcloud.PrimaryIP
 	PrimaryIPv6       string
@@ -66,7 +64,7 @@ type Driver struct {
 }
 
 const (
-	defaultImage = "ubuntu-20.04"
+	defaultImage = "ubuntu-24.04"
 	defaultType  = "cx11"
 
 	flagAPIToken          = "hetzner-api-token"
@@ -77,13 +75,9 @@ const (
 	flagLocation          = "hetzner-server-location"
 	flagExKeyID           = "hetzner-existing-key-id"
 	flagExKeyPath         = "hetzner-existing-key-path"
-	flagUserData          = "hetzner-user-data"
-	flagUserDataFile      = "hetzner-user-data-file"
 	flagVolumes           = "hetzner-volumes"
 	flagNetworks          = "hetzner-networks"
 	flagUsePrivateNetwork = "hetzner-use-private-network"
-	flagDisablePublic4    = "hetzner-disable-public-ipv4"
-	flagDisablePublic6    = "hetzner-disable-public-ipv6"
 	flagPrimary4          = "hetzner-primary-ipv4"
 	flagPrimary6          = "hetzner-primary-ipv6"
 	flagDisablePublic     = "hetzner-disable-public"
@@ -106,10 +100,6 @@ const (
 	defaultWaitOnPolling         = 1
 	flagWaitForRunningTimeout    = "hetzner-wait-for-running-timeout"
 	defaultWaitForRunningTimeout = 0
-
-	legacyFlagUserDataFromFile = "hetzner-user-data-from-file"
-	legacyFlagDisablePublic4   = "hetzner-disable-public-4"
-	legacyFlagDisablePublic6   = "hetzner-disable-public-6"
 
 	emptyImageArchitecture = hcloud.Architecture("")
 )
@@ -181,23 +171,6 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			Usage:  "Path to existing key (new public key will be created unless --hetzner-existing-key-id is specified)",
 			Value:  "",
 		},
-		mcnflag.StringFlag{
-			EnvVar: "HETZNER_USER_DATA",
-			Name:   flagUserData,
-			Usage:  "Cloud-init based user data (inline).",
-			Value:  "",
-		},
-		mcnflag.BoolFlag{
-			EnvVar: "HETZNER_USER_DATA_FROM_FILE",
-			Name:   legacyFlagUserDataFromFile,
-			Usage:  "DEPRECATED, legacy.",
-		},
-		mcnflag.StringFlag{
-			EnvVar: "HETZNER_USER_DATA_FILE",
-			Name:   flagUserDataFile,
-			Usage:  "Cloud-init based user data (read from file)",
-			Value:  "",
-		},
 		mcnflag.StringSliceFlag{
 			EnvVar: "HETZNER_VOLUMES",
 			Name:   flagVolumes,
@@ -214,26 +187,6 @@ func (d *Driver) GetCreateFlags() []mcnflag.Flag {
 			EnvVar: "HETZNER_USE_PRIVATE_NETWORK",
 			Name:   flagUsePrivateNetwork,
 			Usage:  "Use private network",
-		},
-		mcnflag.BoolFlag{
-			EnvVar: "HETZNER_DISABLE_PUBLIC_IPV4",
-			Name:   flagDisablePublic4,
-			Usage:  "Disable public ipv4",
-		},
-		mcnflag.BoolFlag{
-			EnvVar: "HETZNER_DISABLE_PUBLIC_4",
-			Name:   legacyFlagDisablePublic4,
-			Usage:  "DEPRECATED, legacy",
-		},
-		mcnflag.BoolFlag{
-			EnvVar: "HETZNER_DISABLE_PUBLIC_IPV6",
-			Name:   flagDisablePublic6,
-			Usage:  "Disable public ipv6",
-		},
-		mcnflag.BoolFlag{
-			EnvVar: "HETZNER_DISABLE_PUBLIC_6",
-			Name:   legacyFlagDisablePublic6,
-			Usage:  "DEPRECATED, legacy",
 		},
 		mcnflag.BoolFlag{
 			EnvVar: "HETZNER_DISABLE_PUBLIC",
@@ -361,16 +314,11 @@ func (d *Driver) setConfigFromFlagsImpl(opts drivers.DriverOptions) error {
 	}
 	d.IsExistingKey = d.KeyID != 0
 	d.originalKey = opts.String(flagExKeyPath)
-	err = d.setUserDataFlags(opts)
-	if err != nil {
-		return err
-	}
+
 	d.Volumes = opts.StringSlice(flagVolumes)
 	d.Networks = opts.StringSlice(flagNetworks)
 	disablePublic := opts.Bool(flagDisablePublic)
 	d.UsePrivateNetwork = opts.Bool(flagUsePrivateNetwork) || disablePublic
-	d.DisablePublic4 = d.deprecatedBooleanFlag(opts, flagDisablePublic4, legacyFlagDisablePublic4) || disablePublic
-	d.DisablePublic6 = d.deprecatedBooleanFlag(opts, flagDisablePublic6, legacyFlagDisablePublic6) || disablePublic
 	d.PrimaryIPv4 = opts.String(flagPrimary4)
 	d.PrimaryIPv6 = opts.String(flagPrimary6)
 	d.Firewalls = opts.StringSlice(flagFirewalls)

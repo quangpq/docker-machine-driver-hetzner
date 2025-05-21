@@ -100,9 +100,6 @@ $ docker-machine create \
 - `--hetzner-existing-key-id`: **requires `--hetzner-existing-key-path`**. Use an existing (remote) SSH key instead of uploading the imported key pair,
   see [SSH Keys API](https://docs.hetzner.cloud/#ssh-keys-get-all-ssh-keys) for how to get a list
 - `--hetzner-additional-key`: Upload an additional public key associated with the server, or associate an existing one with the same fingerprint. Can be specified multiple times.
-- `--hetzner-user-data`: Cloud-init based data, passed inline as-is.
-- `--hetzner-user-data-file`: Cloud-init based data, read from passed file.
-- `--hetzner-user-data-from-file`: DEPRECATED, use `--hetzner-user-data-file`. Read `--hetzner-user-data` as file name and use contents as user-data.
 - `--hetzner-volumes`: Volume IDs or names which should be attached to the server
 - `--hetzner-networks`: Network IDs or names which should be attached to the server private network interface
 - `--hetzner-use-private-network`: Use private network
@@ -163,14 +160,10 @@ was used during creation.
 | `--hetzner-existing-key-path`        | `HETZNER_EXISTING_KEY_PATH`        | *(generate new keypair)*   |
 | `--hetzner-existing-key-id`          | `HETZNER_EXISTING_KEY_ID`          | 0 *(upload new key)*       |
 | `--hetzner-additional-key`           | `HETZNER_ADDITIONAL_KEYS`          |                            |
-| `--hetzner-user-data`                | `HETZNER_USER_DATA`                |                            |
-| `--hetzner-user-data-file`           | `HETZNER_USER_DATA_FILE`           |                            |
 | `--hetzner-networks`                 | `HETZNER_NETWORKS`                 |                            |
 | `--hetzner-firewalls`                | `HETZNER_FIREWALLS`                |                            |
 | `--hetzner-volumes`                  | `HETZNER_VOLUMES`                  |                            |
 | `--hetzner-use-private-network`      | `HETZNER_USE_PRIVATE_NETWORK`      | false                      |
-| `--hetzner-disable-public-ipv4`      | `HETZNER_DISABLE_PUBLIC_IPV4`      | false                      |
-| `--hetzner-disable-public-ipv6`      | `HETZNER_DISABLE_PUBLIC_IPV6`      | false                      |
 | `--hetzner-disable-public`           | `HETZNER_DISABLE_PUBLIC`           | false                      |
 | `--hetzner-server-label`             | (inoperative)                      | `[]`                       |
 | `--hetzner-key-label`                | (inoperative)                      | `[]`                       |
@@ -200,7 +193,7 @@ Hetzner assigns them at the given time, so users should take care what retention
 
 When disabling all public IPs, `--hetzner-use-private-network` must be given.
 `--hetzner-disable-public` will take care of that, and behaves as if
-`--hetzner-disable-public-ipv4 --hetzner-disable-public-ipv6 --hetzner-use-private-network`
+`--hetzner-use-private-network`
 were given.
 Using `--hetzner-use-private-network` implicitly or explicitly requires at least one `--hetzner-network`
 to be given.

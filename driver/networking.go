@@ -69,10 +69,10 @@ func (d *Driver) setPublicNetIfRequired(srvopts *hcloud.ServerCreateOpts) error 
 		return err
 	}
 
-	if d.DisablePublic4 || d.DisablePublic6 || pip4 != nil || pip6 != nil {
+	if pip4 != nil || pip6 != nil {
 		srvopts.PublicNet = &hcloud.ServerCreatePublicNet{
-			EnableIPv4: !d.DisablePublic4 || pip4 != nil,
-			EnableIPv6: !d.DisablePublic6 || pip6 != nil,
+			EnableIPv4: pip4 != nil,
+			EnableIPv6: pip6 != nil,
 			IPv4:       pip4,
 			IPv6:       pip6,
 		}
@@ -95,18 +95,6 @@ func (d *Driver) configureNetworkAccess(srv hcloud.ServerCreateResult) error {
 			}
 			time.Sleep(time.Duration(d.WaitOnPolling) * time.Second)
 		}
-	} else if d.DisablePublic4 {
-		log.Infof("Using public IPv6 network ...")
-
-		pv6 := srv.Server.PublicNet.IPv6
-		ip := pv6.IP
-		if ip.Mask(pv6.Network.Mask).Equal(pv6.Network.IP) { // no host given
-			ip[net.IPv6len-1] |= 0x01 // TODO make this configurable
-		}
-
-		ips := ip.String()
-		log.Infof(" -> resolved %v ...", ips)
-		d.IPAddress = ips
 	} else {
 		log.Infof("Using public network ...")
 		d.IPAddress = srv.Server.PublicNet.IPv4.IP.String()
